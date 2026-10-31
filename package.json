@@ -1,0 +1,10 @@
+{
+  "name": "parcelwise",
+  "version": "0.1.0",
+  "private": true,
+  "description": "What a courier will really charge to post a parcel: the volumetric (box-size) weight, which one you're billed on, how much air you're paying for, and the smaller box that would stop it. Runs in the browser, nothing uploaded. With Boxy the box.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT"
+}
