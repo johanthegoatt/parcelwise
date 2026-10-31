@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parcelwise — what a courier will really charge to post your parcel</title>
+  <meta name="description" content="Couriers bill on the greater of the parcel's weight and its box size, so a light thing in a big box costs a fortune. Parcelwise works out the volumetric weight, which one you'll be billed on, how much air you're paying for, and the smaller box that would stop it. Runs in your browser; nothing you type is uploaded.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23b2683a'/%3E%3Cg fill='%23fff'%3E%3Crect x='7' y='13' width='18' height='12' rx='1.6'/%3E%3Crect x='15' y='13' width='2' height='12' opacity='.6'/%3E%3Cpath d='M7 13l4-5h10l4 5' fill='none' stroke='%23fff' stroke-width='2' stroke-linejoin='round' opacity='.85'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <h1><span class="logo" aria-hidden="true"></span> Parcelwise</h1>
+      <p class="tag">A courier charges on the greater of the weight and the box size, so a light thing in a big box costs a fortune. Parcelwise works out which one you'll be billed on, how much air you're paying for, and the smaller box that would stop it.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <form id="form" class="card" autocomplete="off">
+      <fieldset class="group">
+        <legend>The box</legend>
+        <div class="field-row">
+          <label class="field">
+            <span>Length</span>
+            <input id="len" inputmode="decimal" placeholder="e.g. 40">
+          </label>
+          <label class="field">
+            <span>Width</span>
+            <input id="wid" inputmode="decimal" placeholder="e.g. 30">
+          </label>
+          <label class="field">
+            <span>Height</span>
+            <input id="hei" inputmode="decimal" placeholder="e.g. 20">
+          </label>
+          <label class="field narrow">
+            <span>in</span>
+            <select id="dim-unit">
+              <option value="cm">cm</option>
+              <option value="mm">mm</option>
+              <option value="in">inches</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint">Measure the sealed box on the outside, including the lid. The longest side is taken as the length.</p>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>The weight</legend>
+        <div class="field-row">
+          <label class="field">
+            <span>Packed parcel weight</span>
+            <input id="wt" inputmode="decimal" placeholder="e.g. 3">
+          </label>
+          <label class="field narrow">
+            <span>in</span>
+            <select id="wt-unit">
+              <option value="kg">kg</option>
+              <option value="g">grams</option>
+              <option value="lb">pounds</option>
+            </select>
+          </label>
+          <label class="field narrow">
+            <span>Price per kg/lb</span>
+            <input id="price" inputmode="decimal" placeholder="optional">
+          </label>
+        </div>
+        <p class="hint">Weigh the whole parcel: the item, the padding and the box together.</p>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>The courier's sum</legend>
+        <div class="field-row">
+          <label class="field">
+            <span>Billing basis</span>
+            <select id="basis">
+              <option value="intl-5000">Standard (DHL / UPS / FedEx), cm &amp; kg</option>
+              <option value="express-6000">Express / air freight, cm &amp; kg</option>
+              <option value="us-139">US domestic (UPS / FedEx), in &amp; lb</option>
+              <option value="usps-166">USPS / older rates, in &amp; lb</option>
+            </select>
+          </label>
+          <label class="field narrow">
+            <span>Divisor</span>
+            <input id="divisor" inputmode="numeric" placeholder="5000">
+          </label>
+        </div>
+        <p class="hint">The divisor turns the box size into a weight. Most couriers use 5000 for cm and kg; set your own if you've a negotiated rate. The units switch to match the basis.</p>
+      </fieldset>
+    </form>
+
+    <div class="out" id="out" aria-live="polite"></div>
+
+    <div class="actions">
+      <button id="share" class="ghost" type="button">Copy a link to this</button>
+      <span id="share-done" class="share-done" aria-live="polite"></span>
+    </div>
+
+    <section class="note">
+      <h2>Why the box, not just the weight</h2>
+      <p>A courier's van fills up by space long before it fills up by weight, so they don't want you posting a
+      beach ball for the price of a brick. They work out a "volumetric" weight from the box size, length times
+      width times height divided by a fixed number, and bill you on whichever is bigger, the real weight or that.
+      The standard number is 5000 when you measure in centimetres and kilograms, 6000 on some express and air
+      services, and 139 for inches and pounds in the US. So a big light parcel is billed as if it were heavy, and
+      the fix is almost always a smaller box: cut the empty space and the bill drops to the real weight. Parcelwise
+      also adds up the length plus girth, because past a certain size couriers tack on a surcharge or won't take
+      the parcel at all. These are planning figures: confirm the divisor, the rounding and the size limits with
+      your own courier before you book.</p>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>Everything runs in your browser. Nothing you type is uploaded. <a href="https://github.com/johanthegoatt/parcelwise">Source</a>.</p>
+  </footer>
+
+  <!-- Boxy the box -->
+  <div id="boxy-dock" class="boxy-dock">
+    <button id="boxy-hide" class="boxy-hide" type="button" aria-label="Hide Boxy">tuck away</button>
+    <div id="boxy-bubble" class="boxy-bubble" role="status" aria-live="polite"></div>
+    <button id="boxy" class="boxy" type="button" data-mood="calm" aria-label="Boxy the box. Tap for a tip.">
+      <span class="boxy-body" aria-hidden="true">
+        <span class="boxy-flap l"></span>
+        <span class="boxy-flap r"></span>
+        <span class="boxy-tape"></span>
+        <span class="boxy-front">
+          <span class="boxy-face">
+            <span class="boxy-eye l"></span>
+            <span class="boxy-eye r"></span>
+            <span class="boxy-mouth"></span>
+          </span>
+        </span>
+      </span>
+    </button>
+  </div>
+
+  <script src="src/core.js"></script>
+  <script src="src/boxy.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
