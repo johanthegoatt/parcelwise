@@ -68,6 +68,52 @@
   //   basis:               key into BASES (default intl-5000)
   //   divisor:             optional override of the basis divisor
   //   price / priceUnit:   optional, per kg or per lb, to put a cost on it
+  // UK Royal Mail size formats, the cheaper-to-dearer price ladder a domestic
+  // parcel drops into by its size and weight. Each is the maximum the format
+  // allows: length x width x thickness in mm, and the weight in grams. A parcel
+  // has to fit ALL three dimensions (in its best orientation) and be under the
+  // weight to qualify. The classic trap is thickness: a 26 mm item can't post as
+  // a Large Letter and jumps to the dearer Small Parcel price, where a 25 mm one
+  // squeaks in. Figures from the Royal Mail size guide.
+  var RM_FORMATS = [
+    { key: "letter", label: "Letter", mm: [240, 165, 5], g: 100 },
+    { key: "large-letter", label: "Large Letter", mm: [353, 250, 25], g: 750 },
+    { key: "small-parcel", label: "Small Parcel", mm: [450, 350, 160], g: 2000 },
+    { key: "medium-parcel", label: "Medium Parcel", mm: [610, 460, 460], g: 20000 }
+  ];
+
+  // Classify a box (cm) and weight (kg) into the smallest Royal Mail format it
+  // fits, and, when it just misses a cheaper one, say which dimension is over
+  // and by how much. Returns null for anything bigger than a Medium Parcel.
+  function royalMail(Lcm, Wcm, Hcm, actualKg) {
+    var mm = [Lcm * 10, Wcm * 10, Hcm * 10].sort(function (a, b) { return b - a; });
+    var grams = actualKg * 1000;
+    function fits(f) {
+      var fm = f.mm.slice().sort(function (a, b) { return b - a; });
+      return mm[0] <= fm[0] + 1e-6 && mm[1] <= fm[1] + 1e-6 && mm[2] <= fm[2] + 1e-6 && grams <= f.g + 1e-6;
+    }
+    var idx = -1;
+    for (var i = 0; i < RM_FORMATS.length; i++) { if (fits(RM_FORMATS[i])) { idx = i; break; } }
+    if (idx < 0) return { format: null, label: "Bigger than a parcel", overBy: null };
+
+    var out = { format: RM_FORMATS[idx].key, label: RM_FORMATS[idx].label, overBy: null };
+    // If a cheaper format exists, work out what keeps the parcel out of it: the
+    // dimension (or the weight) that's over, and by how much. Thickness first,
+    // since that's the usual culprit.
+    if (idx > 0) {
+      var cheaper = RM_FORMATS[idx - 1];
+      var fm = cheaper.mm.slice().sort(function (a, b) { return b - a; });
+      var labels = ["length", "width", "thickness"];
+      var overs = [];
+      for (var d = 0; d < 3; d++) {
+        if (mm[d] > fm[d] + 1e-6) overs.push({ what: labels[d], byMm: round1(mm[d] - fm[d]) });
+      }
+      if (grams > cheaper.g + 1e-6) overs.push({ what: "weight", byG: Math.round(grams - cheaper.g) });
+      out.overBy = { toFormat: cheaper.label, items: overs };
+    }
+    return out;
+  }
+
   function quote(opts) {
     opts = opts || {};
     var b = BASES[opts.basis] ? opts.basis : "intl-5000";
@@ -147,7 +193,10 @@
       lengthPlusGirth: round1(lengthPlusGirth),
       overLimit: overLimit,
       maxLimit: maxLimit,
-      sizeFlag: sizeFlag
+      sizeFlag: sizeFlag,
+      // Royal Mail size format, for a UK domestic parcel in cm and kg. Only
+      // meaningful on the metric bases; null on the imperial (US) ones.
+      ukFormat: system === "metric" ? royalMail(L, W, H, actual) : null
     };
 
     var price = num(opts.price);
@@ -182,6 +231,18 @@
       tips.push("Length plus girth is " + r.lengthPlusGirth + " " + du + ", past the roughly " +
         r.maxLimit + " " + du + " most couriers will take. You may need a freight service.");
     }
+    if (r.ukFormat && r.ukFormat.format) {
+      var rm = "UK post: this fits Royal Mail's " + r.ukFormat.label + " size.";
+      if (r.ukFormat.overBy && r.ukFormat.overBy.items.length) {
+        var it = r.ukFormat.overBy.items[0];
+        var by = it.byMm != null ? it.byMm + " mm" : it.byG + " g";
+        rm += " It's over the cheaper " + r.ukFormat.overBy.toFormat + " only on " + it.what + ", by " + by +
+          " — trimming that would drop it a price band.";
+      }
+      tips.push(rm);
+    } else if (r.ukFormat && !r.ukFormat.format) {
+      tips.push("UK post: bigger than Royal Mail's largest parcel size; a courier parcel service is the one to price.");
+    }
     tips.push("Planning figures. The divisor is " + r.divisor + " here; confirm it, and whether the billed weight rounds up, with your own courier before you book.");
     return tips;
   }
@@ -206,8 +267,8 @@
   }
 
   return {
-    IN: IN, LB: LB, BASES: BASES, stepFor: stepFor,
+    IN: IN, LB: LB, BASES: BASES, stepFor: stepFor, RM_FORMATS: RM_FORMATS,
     toLen: toLen, toWeight: toWeight, round1: round1, round2: round2, roundUpTo: roundUpTo,
-    quote: quote, advise: advise, pack: pack, unpack: unpack
+    royalMail: royalMail, quote: quote, advise: advise, pack: pack, unpack: unpack
   };
 });
