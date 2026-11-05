@@ -143,3 +143,42 @@ test("pack and unpack round-trip the state", function () {
   assert.deepStrictEqual(P.unpack(P.pack(state)), state);
   assert.strictEqual(P.unpack("not valid base64 @@@"), null);
 });
+
+// Royal Mail UK size formats: classify by size and weight, and name the
+// dimension that keeps a parcel out of the cheaper band (the thickness trap).
+test("a thin item posts as a Large Letter, a fraction thicker is a Small Parcel", function () {
+  // 30 x 20 x 2.5 cm, 300 g: within Large Letter (353x250x25 mm, 750 g).
+  var ll = P.royalMail(30, 20, 2.5, 0.3);
+  assert.strictEqual(ll.format, "large-letter");
+  // bump the thickness to 2.6 cm (26 mm): over the 25 mm Large Letter limit.
+  var sp = P.royalMail(30, 20, 2.6, 0.3);
+  assert.strictEqual(sp.format, "small-parcel");
+  assert.strictEqual(sp.overBy.toFormat, "Large Letter");
+  assert.strictEqual(sp.overBy.items[0].what, "thickness");
+  assert.ok(sp.overBy.items[0].byMm >= 0.9 && sp.overBy.items[0].byMm <= 1.1);
+});
+
+test("orientation doesn't matter: the smallest fitting format is found", function () {
+  // same box entered thickness-first still classifies as Large Letter.
+  var a = P.royalMail(2.5, 20, 30, 0.3);
+  assert.strictEqual(a.format, "large-letter");
+});
+
+test("weight alone can push a small box up a band", function () {
+  // tiny box but 900 g: too heavy for Large Letter (750 g), so Small Parcel.
+  var r = P.royalMail(20, 15, 2, 0.9);
+  assert.strictEqual(r.format, "small-parcel");
+  assert.ok(r.overBy.items.some(function (i) { return i.what === "weight"; }));
+});
+
+test("a big box is past every parcel format", function () {
+  var r = P.royalMail(80, 50, 50, 25);
+  assert.strictEqual(r.format, null);
+});
+
+test("ukFormat is on the metric quote and absent on the imperial one", function () {
+  var m = P.quote({ length: { value: 30, unit: "cm" }, width: { value: 20, unit: "cm" }, height: { value: 2.5, unit: "cm" }, weight: { value: 0.3, unit: "kg" }, basis: "intl-5000" });
+  assert.ok(m.ukFormat && m.ukFormat.format === "large-letter");
+  var i = P.quote({ length: { value: 12, unit: "in" }, width: { value: 8, unit: "in" }, height: { value: 1, unit: "in" }, weight: { value: 1, unit: "lb" }, basis: "us-139" });
+  assert.strictEqual(i.ukFormat, null);
+});
