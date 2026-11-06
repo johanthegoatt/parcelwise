@@ -133,7 +133,19 @@
     if (!(L > 0) || !(W > 0) || !(H > 0)) return { ok: false, reason: "bad-box" };
     if (!(actual > 0)) return { ok: false, reason: "bad-weight" };
 
-    var volume = L * W * H;               // cm^3 or in^3
+    // Couriers measure to the next whole unit up: a 30.2 cm side is billed as
+    // 31 cm (or the next whole inch), so the box you're charged for is a little
+    // bigger than the one you packed, and the rounding can nudge you into the
+    // next chargeable kilo. With roundDims on, the volume is worked out from the
+    // rounded-up sides, which is what the courier actually bills.
+    var unit = 1; // one whole cm or inch
+    var roundDims = !!opts.roundDims;
+    var Lb = roundDims ? Math.ceil(L - 1e-9) : L;
+    var Wb = roundDims ? Math.ceil(W - 1e-9) : W;
+    var Hb = roundDims ? Math.ceil(H - 1e-9) : H;
+    var dimsRounded = roundDims && (Lb > L + 1e-9 || Wb > W + 1e-9 || Hb > H + 1e-9);
+
+    var volume = Lb * Wb * Hb;            // cm^3 or in^3, on the billed sides
     var volumetric = volume / divisor;    // kg or lb
     var billable = Math.max(actual, volumetric);
     var volumetricWins = volumetric > actual + 1e-9;
@@ -179,6 +191,9 @@
       divisor: divisor,
       step: step,
       L: round1(L), W: round1(W), H: round1(H),
+      roundDims: roundDims,
+      billedL: round1(Lb), billedW: round1(Wb), billedH: round1(Hb),
+      dimsRounded: dimsRounded,
       volume: Math.round(volume),
       actual: round2(actual),
       volumetric: round2(volumetric),
