@@ -6,7 +6,7 @@
   var P = window.Parcelwise;
   var $ = function (id) { return document.getElementById(id); };
 
-  var ids = ["len", "wid", "hei", "dim-unit", "wt", "wt-unit", "basis", "divisor", "price"];
+  var ids = ["len", "wid", "hei", "dim-unit", "wt", "wt-unit", "basis", "divisor", "price", "round-dims"];
   var el = {};
   ids.forEach(function (id) { el[id] = $(id); });
   var out = $("out");
@@ -15,7 +15,8 @@
     return {
       l: el.len.value.trim(), w: el.wid.value.trim(), h: el.hei.value.trim(), du: el["dim-unit"].value,
       wt: el.wt.value.trim(), wu: el["wt-unit"].value,
-      b: el.basis.value, dv: el.divisor.value.trim(), p: el.price.value.trim()
+      b: el.basis.value, dv: el.divisor.value.trim(), p: el.price.value.trim(),
+      rd: el["round-dims"].checked ? 1 : 0
     };
   }
 
@@ -30,6 +31,7 @@
     if (s.b) el.basis.value = s.b;
     if (s.dv != null) el.divisor.value = s.dv;
     if (s.p != null) el.price.value = s.p;
+    if (s.rd != null) el["round-dims"].checked = !!s.rd;
   }
 
   function cell(k, v, u, big) {
@@ -95,7 +97,10 @@
           fillBlock +
         '</div>' +
       '</div>' +
-      '<div class="result"><h3>Box & limits</h3>' + size + '</div>' +
+      '<div class="result"><h3>Box &amp; limits</h3>' + size +
+        (r.dimsRounded ? '<p class="opt-sub">Billed as ' + r.billedL + ' &times; ' + r.billedW + ' &times; ' + r.billedH + ' ' + r.lengthUnit +
+          ': the courier rounds each side up to the next whole ' + r.lengthUnit + ', so you pay on a slightly bigger box than you measured.</p>' : "") +
+      '</div>' +
       '<div class="result"><h3>What to do</h3>' + advice + '</div>';
 
     if (r.sizeFlag !== "ok") return "big";
@@ -108,6 +113,7 @@
       length: { value: s.l, unit: s.du }, width: { value: s.w, unit: s.du }, height: { value: s.h, unit: s.du },
       weight: { value: s.wt, unit: s.wu },
       basis: s.b, divisor: s.dv === "" ? undefined : parseFloat(s.dv),
+      roundDims: !!s.rd,
       price: s.p, priceUnit: s.wu
     });
     var kind = render(r);
@@ -144,7 +150,7 @@
   }
 
   // Tips follow where the eye is.
-  ["len", "wid", "hei", "dim-unit", "basis", "divisor"].forEach(function (id) {
+  ["len", "wid", "hei", "dim-unit", "basis", "divisor", "round-dims"].forEach(function (id) {
     el[id].addEventListener("focus", function () { if (window.Boxy) window.Boxy.context("box"); });
   });
   ["wt", "wt-unit", "price"].forEach(function (id) {

@@ -85,7 +85,11 @@
             <input id="divisor" inputmode="numeric" placeholder="5000">
           </label>
         </div>
-        <p class="hint">The divisor turns the box size into a weight. Most couriers use 5000 for cm and kg; set your own if you've a negotiated rate. The units switch to match the basis.</p>
+        <label class="check">
+          <input type="checkbox" id="round-dims" checked>
+          <span>Round each side up to the next whole unit, as the courier measures</span>
+        </label>
+        <p class="hint">The divisor turns the box size into a weight. Most couriers use 5000 for cm and kg; set your own if you've a negotiated rate. They also measure to the next whole centimetre or inch up, so the box they bill is a touch bigger than the one you packed.</p>
       </fieldset>
     </form>
 
