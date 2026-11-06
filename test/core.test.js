@@ -182,3 +182,24 @@ test("ukFormat is on the metric quote and absent on the imperial one", function 
   var i = P.quote({ length: { value: 12, unit: "in" }, width: { value: 8, unit: "in" }, height: { value: 1, unit: "in" }, weight: { value: 1, unit: "lb" }, basis: "us-139" });
   assert.strictEqual(i.ukFormat, null);
 });
+
+test("rounding dims up bills a bigger box, as the courier measures", () => {
+  const base = { basis: "intl-5000", length: { value: 30.2, unit: "cm" }, width: { value: 20.4, unit: "cm" }, height: { value: 10.6, unit: "cm" }, weight: { value: 1, unit: "kg" } };
+  const off = P.quote(Object.assign({}, base, { roundDims: false }));
+  const on = P.quote(Object.assign({}, base, { roundDims: true }));
+  assert.ok(off.ok && on.ok);
+  // 31 x 21 x 11 > 30.2 x 20.4 x 10.6, so the billed volume and volumetric weight rise
+  assert.ok(on.volume > off.volume);
+  assert.ok(on.volumetric >= off.volumetric);
+  assert.strictEqual(on.dimsRounded, true);
+  assert.strictEqual(on.billedL, 31);
+  assert.strictEqual(on.billedH, 11);
+});
+
+test("rounding a box already on whole units changes nothing", () => {
+  const base = { basis: "intl-5000", length: { value: 40, unit: "cm" }, width: { value: 30, unit: "cm" }, height: { value: 20, unit: "cm" }, weight: { value: 2, unit: "kg" } };
+  const on = P.quote(Object.assign({}, base, { roundDims: true }));
+  assert.strictEqual(on.dimsRounded, false);
+  assert.strictEqual(on.billedL, 40);
+  assert.strictEqual(on.volume, 40 * 30 * 20);
+});
