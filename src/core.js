@@ -214,8 +214,21 @@
       ukFormat: system === "metric" ? royalMail(L, W, H, actual) : null
     };
 
+    // Cost, if a price per billed unit is given. As well as the total, work out
+    // how much of it is air: what you'd pay on the actual weight (rounded up the
+    // same way) versus what the box size makes you pay, so the empty space shows
+    // up as money, not just as extra kilos.
     var price = num(opts.price);
-    out.cost = isFinite(price) && price > 0 ? round2(billableRounded * price) : null;
+    if (isFinite(price) && price > 0) {
+      var actualRounded = roundUpTo(actual, step);
+      out.cost = round2(billableRounded * price);
+      out.costOnActual = round2(actualRounded * price);
+      out.airCost = round2(Math.max(0, out.cost - out.costOnActual));
+    } else {
+      out.cost = null;
+      out.costOnActual = null;
+      out.airCost = null;
+    }
 
     out.advice = advise(out);
     return out;
@@ -233,6 +246,9 @@
         tips.push("A box about " + r.targetHeight + " " + du + " tall (instead of " + r.H + ") would bring the billed weight down to the real weight. Use the smallest box the item safely fits.");
       } else {
         tips.push("A smaller or tighter box would lower the billed weight. Use the smallest one the item safely fits.");
+      }
+      if (r.airCost != null && r.airCost > 0) {
+        tips.push("At this rate that air is costing about " + r.airCost + " a parcel on top of the " + r.costOnActual + " the real weight would cost.");
       }
     } else {
       tips.push("You'll be billed on the actual weight: " + r.billableRounded + " " + u +
