@@ -58,7 +58,8 @@
       cell("You pay for", r.billableRounded, u, true) +
       cell("Actual", r.actual, u) +
       cell("By size", r.volumetric, u) +
-      (r.cost != null ? cell("Cost", r.cost, "") : "");
+      (r.cost != null ? cell("Cost", r.cost, "") : "") +
+      (r.airCost != null && r.airCost > 0 ? cell("Of that, air", r.airCost, "") : "");
 
     var fillClass = r.fillPercent >= 100 ? "fill-bar full" : "fill-bar";
     var fillWidth = Math.max(4, Math.min(100, r.fillPercent));
