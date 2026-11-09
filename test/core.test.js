@@ -203,3 +203,38 @@ test("rounding a box already on whole units changes nothing", () => {
   assert.strictEqual(on.billedL, 40);
   assert.strictEqual(on.volume, 40 * 30 * 20);
 });
+
+// --- cost of the air ---
+
+test("a light box in a big carton pays for air in money", function () {
+  // 60x40x40 cm = 96000 cm3 / 5000 = 19.2 kg volumetric vs 2 kg actual
+  var r = P.quote({
+    length: { value: 60, unit: "cm" }, width: { value: 40, unit: "cm" }, height: { value: 40, unit: "cm" },
+    weight: { value: 2, unit: "kg" }, basis: "intl-5000", price: 3
+  });
+  assert.ok(r.ok);
+  assert.ok(r.volumetricWins);
+  assert.strictEqual(r.cost, r.billableRounded * 3);
+  assert.ok(r.airCost > 0, "air should cost money");
+  // cost on the real 2 kg (rounded to 2) is 6; the billed ~19.5 kg is far more
+  assert.strictEqual(r.costOnActual, 6);
+  assert.strictEqual(r.airCost, Math.round((r.cost - r.costOnActual) * 100) / 100);
+});
+
+test("a dense box pays no air cost", function () {
+  var r = P.quote({
+    length: { value: 20, unit: "cm" }, width: { value: 20, unit: "cm" }, height: { value: 20, unit: "cm" },
+    weight: { value: 10, unit: "kg" }, basis: "intl-5000", price: 3
+  });
+  assert.ok(!r.volumetricWins);
+  assert.strictEqual(r.airCost, 0);
+});
+
+test("no price, no cost figures", function () {
+  var r = P.quote({
+    length: { value: 30, unit: "cm" }, width: { value: 20, unit: "cm" }, height: { value: 10, unit: "cm" },
+    weight: { value: 1, unit: "kg" }, basis: "intl-5000"
+  });
+  assert.strictEqual(r.cost, null);
+  assert.strictEqual(r.airCost, null);
+});
